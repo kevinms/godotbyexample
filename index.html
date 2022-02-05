@@ -1,14 +1,169 @@
 <html>
 
 <head>
-	<title>Godot By Example</title>
+<title>Godot By Example</title>
+<style>
+circle {
+	opacity: 0.5;
+}
+</style>
 </head>
 
 <body>
-	<div>
-		<svg width="600" height="400"></svg>
-	</div>
+<div>
+  <canvas id="myCanvas" resize width="600" height="400" style="border: 1px solid black;"></canvas>
+  <div/>
+  <svg width="600" height="400"></svg>
+
+</div>
 </body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.15/paper-full.min.js" integrity="sha512-ovjLI1ZcZe6bw+ImQ21r+sv8q/Vwob2kq7tFidK6E1LWfi0T4uobbmpfEU1//a9h9o5Kkt+MnMWf6rWlg0EiMw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="text/paperscript" canvas="myCanvas">
+  function create_vector(point) {
+    var path = new Path();
+    path.strokeColor = 'black';
+    path.strokeCap = 'round';
+    path.strokeJoin = 'round';
+    path.strokeWidth = 4;
+
+    //TODO: Draw arrow at end of vector
+    // path.moveTo(new Point(100, 100));
+    // path.translate(new Point(100, 100));
+    var origin = new Point(100, 100);
+    console.log("Line debug:");
+    console.log(point);
+    path.moveTo(origin);
+    path.lineTo(origin + point);
+
+    var right = new Point(1, 0);
+    console.log(point.angle);
+
+    var tip = new Path.RegularPolygon(new Point(), 3, 10);
+    tip.fillColor = 'black';
+    // tip.position = new Point(100, 100);
+    tip.rotate(90 + point.angle);
+    tip.translate(origin + new Point(0, -10*Math.sin(3.1415926 / 6)));
+    tip.visible = true;
+    console.log("Triangle debug:")
+    console.log(tip)
+    console.log(tip.bounds)
+    console.log(tip.pivot)
+    console.log(tip.position)
+
+    var debug_tip = new Path.RegularPolygon(origin, 4, 5);
+    debug_tip.fillColor = 'red';
+
+
+    return new Group([path, tip])
+  }
+
+  // parameters
+  var headLength = 10;
+  var headAngle = 150;
+  var arrowColor = 'black';
+
+  // the arrow
+  var arrow = null;
+
+  function drawArrow(start, end, visible) {
+    var tailLine = new Path.Line(start, end);
+    var tailVector = end - start;
+    var headLine = tailVector.normalize(headLength);
+
+    arrow = new Group([
+	new Path({
+	  segments: [start, end],
+	  // fillColor: 'black',
+	  // strokeWidth: 4,
+	}),
+	new Path({
+	  segments: [
+	      end + headLine.rotate(headAngle),
+	      end,
+	      end + headLine.rotate(-headAngle)
+	  ],
+	  closed: true,
+	  // fillColor: 'black',
+	  // strokeWidth: 4,
+	})
+    ]);
+
+    arrow.strokeColor = 'black';
+    arrow.fillColor = 'black';
+    arrow.strokeWidth = 10;
+
+    //TODO: add selection box
+
+    return arrow
+  }
+
+
+
+  var va = new Point(100, -50);
+  var vb = new Point(40, -100);
+
+  var origin = new Point(100, 100);
+
+  var vector = drawArrow(origin, origin + va);
+  vector.onMouseDrag = function(event) {
+    vector.position += event.delta;
+  }
+
+  // var vector = create_vector(va);
+  // vector.onMouseDrag = function(event) {
+  //   vector.position += event.delta;
+  // }
+
+
+  // path.moveTo(start);
+  // path.lineTo(start + [ 100, -50 ]);
+  //
+  // // Create a triangle shaped path
+  // var triangle = new Path.RegularPolygon(new Point(path.position), 3, 50);
+  // triangle.fillColor = '#e9e9ff';
+  // triangle.selected = true;
+
+  // Create a point-text item at {x: 30, y: 30}:
+  var text = new PointText(new Point(30, 30));
+  text.fillColor = 'black';
+
+  // Set the content of the text item:
+  text.content = 'Hello world';
+  text.fontSize = 20;
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+<script>
+function setup() {
+  createCanvas(400, 400);
+}
+
+function draw() {
+  // drawingContext.shadowOffsetX = 5;
+  // drawingContext.shadowOffsetY = -5;
+  // drawingContext.shadowBlur = 10;
+  // drawingContext.shadowColor = "black";
+
+  background(200);
+  // ellipse(50,50,80,80);
+
+  if (mouseIsPressed) {
+    fill(0);
+  } else {
+    fill(255);
+  }
+  ellipse(mouseX, mouseY, 80, 80);
+
+let fps = frameRate();
+fill(255);
+stroke(0);
+text("FPS: " + fps.toFixed(2), 10, height - 10);
+
+}
+</script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>
@@ -40,14 +195,43 @@ function updateData() {
 	}
 }
 
+	let arrowPoints = [[0, 0], [0, 20], [20, 10]];
+	let refX = 10;
+	let refY = 10;
+	let markerBoxWidth = 20;
+	let markerBoxHeight = 20;
+	let markerWidth = 10;
+	let markerHeight = 10;
+
 function update() {
-	d3.select('svg')
+	let svg = d3.select('svg')
 		.selectAll('circle')
 		.data(data)
 		.join('circle')
 		.attr('cx', function(d) { return d.x; })
 		.attr('cy', function(d) { return d.y; })
 		.attr('r', 40);
+	
+
+	svg
+	.append('defs')
+	.append('marker')
+    .attr('id', 'arrow')
+    .attr("refX", 6)
+    .attr("refY", 6)
+    .attr('markerWidth', 30)
+    .attr('markerHeight', 30)
+    .attr('orient', 'auto-start-reverse')
+    .append('path')
+    .attr("d", d3.line()(arrowPoints))
+    .style("stroke", "black");
+
+	svg
+	.append('path')
+	.attr('d', d3.line()([[100, 60], [40, 90], [200, 80], [300, 150]]))
+	.attr('stroke', 'black')
+	.attr('marker-end', 'url(#arrow)')
+	.attr('fill', 'none');
 }
 
 updateData();
